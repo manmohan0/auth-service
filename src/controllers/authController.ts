@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { connectdb } from "../config/db";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { jwtSign } from "../services/jwtService";
 
 dotenv.config()
 
@@ -22,13 +22,10 @@ export const signInController = async (req: Request , res: Response) : Promise<v
             const client = await connectdb()
             if (!client) {
                 const reason = { success: false, reason: "Internal Server Error" }
-                // channel.sendToQueue(msg.properties.replyTo, Buffer.from(JSON.stringify(reason)), { correlationId: msg.properties.correlationId })
-                // channel.ack(msg)
                 res.json(reason);
                 return
             }
 
-            
             const query = "SELECT * FROM users WHERE email = $1"
             const result = await client.query(query, [user.email])
 
@@ -39,8 +36,8 @@ export const signInController = async (req: Request , res: Response) : Promise<v
                 
                 if (verifyPassword) {
                     const user = { firstname: userRow.firstname, lastname: userRow.lastname, phone: userRow.phone, email: userRow.email }
-                    const reason = { success: true, reason: "", user: user }
-                    const token = jwt.sign(JSON.stringify(user), process.env.SECRET_KEY ?? "")
+                    const token = jwtSign(user)
+                    const reason = { success: true, reason: "", token }
                     res.json(reason)
                     return
                 } else {

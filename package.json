@@ -20,6 +20,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.15.6",
+    "tsconfig-paths": "^4.2.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {
