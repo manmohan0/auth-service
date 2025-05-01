@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres
+    platform: linux/amd64
+    container_name: auth-postgres
+    ports:
+      - 5432:5432
+    env_file: 
+      - .env
+    volumes:
+      - auth_service_data:/var/lib/postgresql/data
+      - ./User.sql:/docker-entrypoint-initdb.d/User.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  auth_service:
+    build: 
+      context: ./
+      dockerfile: Dockerfile
+
+    ports:
+      - 3001:3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+
+volumes:
+  auth_service_data:
+      
