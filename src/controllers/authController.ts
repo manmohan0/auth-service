@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { connectdb } from "../config/db";
+import { jwtSign } from "../services/jwtService";
+import { connectRedis } from "../config/redis";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { jwtSign } from "../services/jwtService";
 
 dotenv.config()
 
@@ -20,8 +21,16 @@ export const signInController = async (req: Request , res: Response) : Promise<v
 
         if (parsedUser.success) {
             const client = await connectdb()
+            const redisClient = await connectRedis()
+            console.log(redisClient)
             if (!client) {
-                const reason = { success: false, reason: "Internal Server Error" }
+                const reason = { success: false, reason: "Database Server Error" }
+                res.json(reason);
+                return
+            }
+
+            if (!redisClient) {
+                const reason = { success: false, reason: "Redis Server Error" }
                 res.json(reason);
                 return
             }
@@ -37,6 +46,9 @@ export const signInController = async (req: Request , res: Response) : Promise<v
                 if (verifyPassword) {
                     const user = { firstname: userRow.firstname, lastname: userRow.lastname, phone: userRow.phone, email: userRow.email }
                     const token = jwtSign(user)
+                    
+                    await redisClient.set("token", token, { "EX": 60 * 60 * 24 * 7 }) // 7 days expiration
+
                     const reason = { success: true, reason: "", token }
                     res.json(reason)
                     return

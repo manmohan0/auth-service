@@ -36,7 +36,7 @@ export const updateAccount = async (req : Request, res : Response) : Promise<voi
             
             const query = `UPDATE users SET firstname = $1, lastname = $2 WHERE email = $3 RETURNING *`
             const result = await client.query(query, [newDetails.firstname, newDetails.lastname, user.email])
-
+            
             const reason = { success: true, reason: "Name Updated Successfully", user: result.rows[0] }
             res.json(reason)
 
