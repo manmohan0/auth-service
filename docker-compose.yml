@@ -15,19 +15,32 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  auth_redis:
+    image: redis:alpine
+    container_name: auth_redis
+    ports:
+      - 6379:6379
+    volumes:
+      - auth_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   auth_service:
     build: 
       context: ./
       dockerfile: Dockerfile
-
     ports:
       - 3001:3001
     depends_on:
       auth_postgres:
+        condition: service_healthy
+      auth_redis:
         condition: service_healthy
     env_file:
       - .env.docker
 
 volumes:
   auth_service_data:
-      
+  auth_redis_data:

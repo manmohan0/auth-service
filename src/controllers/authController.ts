@@ -103,7 +103,7 @@ export const signUpController = async (req : Request, res : Response) : Promise<
         if (userParsed.success) {
             const client = await connectdb()
             if (!client) {
-                const reason = { success: false, reason: "Internal Server Error" }
+                const reason = { success: false, reason: "Database Server Error" }
                 res.json(reason);
                 return
             }
