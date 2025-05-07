@@ -44,12 +44,12 @@ export const signInController = async (req: Request , res: Response) : Promise<v
                 const verifyPassword = await bcrypt.compare(user.password, userRow.passwords)
                 
                 if (verifyPassword) {
-                    const user = { firstname: userRow.firstname, lastname: userRow.lastname, phone: userRow.phone, email: userRow.email }
+                    const user = { firstname: userRow.firstname, lastname: userRow.lastname, phone: userRow.phone, email: userRow.email, role: userRow.role }
                     const token = jwtSign(user)
                     
                     await redisClient.set("token", token, { "EX": 60 * 60 * 24 * 7 }) // 7 days expiration
 
-                    const reason = { success: true, reason: "", token }
+                    const reason = { success: true, reason: "", token, role: userRow.role }
                     res.json(reason)
                     return
                 } else {
@@ -85,6 +85,7 @@ export const signInController = async (req: Request , res: Response) : Promise<v
 export const signUpController = async (req : Request, res : Response) : Promise<void> => {
     try {
         const user = req.body
+        user.role = user.role ?? "Customer"
 
         const userSchema = z.object({
             firstName: z.string().min(1, "First name is required"),
@@ -92,6 +93,7 @@ export const signUpController = async (req : Request, res : Response) : Promise<
             email: z.string().email("Invalid Email"),
             phone: z.string().length(10, "Phone number must have 10 digits"),
             password: z.string().min(8, "Password should have atleast 8 characters"),
+            role: z.enum(["Customer", "Merchant"], { errorMap: () => ({ message: "Role must be either admin or user" }) }),
             confirmPassword: z.string().min(8, "Confirm Password should have atleast 8 characters")
         }).refine((data) => data.password === data.confirmPassword, {
             message: "Password and Confirm Password must match",
@@ -120,8 +122,8 @@ export const signUpController = async (req : Request, res : Response) : Promise<
                 const salt = await bcrypt.genSalt(12)
                 const hashedPassword = await bcrypt.hash(user.password, salt)
                 
-                const query = "INSERT INTO users (firstname, lastname, phone, email, passwords, salt) VALUES ($1, $2, $3, $4, $5, $6)"
-                client.query(query, [user.firstName, user.lastName, user.phone, user.email, hashedPassword, salt])
+                const query = "INSERT INTO users (firstname, lastname, phone, email, passwords, role, salt) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+                client.query(query, [user.firstName, user.lastName, user.phone, user.email, hashedPassword, user.role, salt])
 
                 const reason = { success: true, reason: "" }
                 client.release()
@@ -130,12 +132,7 @@ export const signUpController = async (req : Request, res : Response) : Promise<
             }
             
         } else {
-            const issues: z.ZodIssue[] = []
-            userParsed.error.issues.forEach(issue => {
-                issues.push(issue)
-            })
-
-            const reason = { success: false, reason: "Wrong Format", issues: issues }
+            const reason = { success: false, reason: "Wrong Format", issues: userParsed.error.issues }
             res.json(reason)
             return
         }        

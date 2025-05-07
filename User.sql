@@ -1,3 +1,5 @@
+CREATE TYPE Role AS ENUM ('Merchant', 'Customer');
+
 CREATE TABLE users (
 	id SERIAL PRIMARY KEY, 	
 	FirstName TEXT NOT NULL, 
@@ -5,5 +7,6 @@ CREATE TABLE users (
 	phone VARCHAR NOT NULL UNIQUE, 
 	email VARCHAR NOT NULL UNIQUE, 
 	passwords VARCHAR(255) NOT NULL,
+	role Role NOT NULL DEFAULT 'Customer',
 	salt VARCHAR(255) NOT NULL
 );

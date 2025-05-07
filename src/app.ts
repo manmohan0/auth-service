@@ -7,10 +7,19 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-    origin: ['http://localhost:3000'],
-    methods: ['GET', 'POST'],
+    origin: (origin, callback) => {
+        const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
 }))
+
+app.options('{/*path}', cors()); 
 
 app.use('/auth', authRoutes)
 app.use('/user', userRoutes)
