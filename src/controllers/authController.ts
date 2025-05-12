@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { connectdb } from "../config/db";
-import { jwtSign } from "../services/jwtService";
+import { jwtSign, jwtVerify } from "../services/jwtService";
 import { connectRedis } from "../config/redis";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
@@ -20,9 +20,10 @@ export const signInController = async (req: Request , res: Response) : Promise<v
         const parsedUser = userSchema.safeParse(user)
 
         if (parsedUser.success) {
+
             const client = await connectdb()
             const redisClient = await connectRedis()
-            console.log(redisClient)
+            
             if (!client) {
                 const reason = { success: false, reason: "Database Server Error" }
                 res.json(reason);
@@ -141,4 +142,34 @@ export const signUpController = async (req : Request, res : Response) : Promise<
         res.json(reason)
         return
     }
+}
+
+export const tryLoginController = async (req: Request, res: Response) : Promise<void> => {
+    const redis = await connectRedis()
+
+    if (!redis) {
+        const reason = { success: false, reason: "Redis Server Error" }
+        res.json(reason);
+        return
+    }
+
+    const token = await redis.get("token")
+
+    if (!token) {
+        const reason = { success: false, reason: "Token Not Found" }
+        res.json(reason);
+        return
+    }
+
+    const decoded = jwtVerify(token)
+
+    if (!decoded) {
+        const reason = { success: false, reason: "Token Expired" }
+        res.json(reason);
+        return
+    }
+
+    const reason = { success: true, reason: "", token, role: decoded.role }
+    res.json(reason);
+    return
 }
